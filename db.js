@@ -20,10 +20,11 @@ if (process.env.NODE_ENV === "production") {
 
 db.connect()
   .then(() => {
-    console.log(`Starting server with DB:${getDatabaseUri()}`)
+    console.log(`Connected sucessfully to ${getDatabaseUri()}`);
   })
   .catch((err) => {
-    console.log(``)
-  })
+    console.error("Database connection error:", err.stack);
+    process.exit(1);
+  });
 
 module.exports = db;
