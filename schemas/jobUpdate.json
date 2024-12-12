@@ -1,0 +1,42 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "http://example.com/example.json",
+    "type": "object",
+    "default": {},
+    "title": "Root Schema",
+    "minProperties": 1,
+    "required": [],
+    "properties": {
+        "title": {
+            "type": "string",
+            "default": "",
+            "title": "The title Schema",
+            "examples": [
+                "Senior Software Engineer"
+            ]
+        },
+        "salary": {
+            "type": "integer",
+            "default": 0,
+            "title": "The salary Schema",
+            "minimum": 0,
+            "examples": [
+                140000
+            ]
+        },
+        "equity": {
+            "type": "number",
+            "default": 0.0,
+            "minimum": 0,
+            "title": "The equity Schema",
+            "examples": [
+                0.1
+            ]
+        }
+    },
+    "examples": [{
+        "title": "Senior Software Engineer",
+        "salary": 140000,
+        "equity": 0.1
+    }]
+}

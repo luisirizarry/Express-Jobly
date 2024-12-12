@@ -58,6 +58,8 @@ describe("create", function () {
 
 /************************************** findAll */
 
+/************************************** findAll */
+
 describe("findAll", function () {
   test("works: no filter", async function () {
     let companies = await Company.findAll();
@@ -85,6 +87,84 @@ describe("findAll", function () {
       },
     ]);
   });
+
+  test("works: with name filter", async function () {
+    let companies = await Company.findAll({ name: "C1" });
+    expect(companies).toEqual([
+      {
+        handle: "c1",
+        name: "C1",
+        description: "Desc1",
+        numEmployees: 1,
+        logoUrl: "http://c1.img",
+      },
+    ]);
+  });
+
+  test("works: with minEmployees filter", async function () {
+    let companies = await Company.findAll({ minEmployees: 2 });
+    expect(companies).toEqual([
+      {
+        handle: "c2",
+        name: "C2",
+        description: "Desc2",
+        numEmployees: 2,
+        logoUrl: "http://c2.img",
+      },
+      {
+        handle: "c3",
+        name: "C3",
+        description: "Desc3",
+        numEmployees: 3,
+        logoUrl: "http://c3.img",
+      },
+    ]);
+  });
+
+  test("works: with maxEmployees filter", async function () {
+    let companies = await Company.findAll({ maxEmployees: 2 });
+    expect(companies).toEqual([
+      {
+        handle: "c1",
+        name: "C1",
+        description: "Desc1",
+        numEmployees: 1,
+        logoUrl: "http://c1.img",
+      },
+      {
+        handle: "c2",
+        name: "C2",
+        description: "Desc2",
+        numEmployees: 2,
+        logoUrl: "http://c2.img",
+      },
+    ]);
+  });
+
+  test("works: with multiple filters", async function () {
+    let companies = await Company.findAll({ name: "C", minEmployees: 2, maxEmployees: 3 });
+    expect(companies).toEqual([
+      {
+        handle: "c2",
+        name: "C2",
+        description: "Desc2",
+        numEmployees: 2,
+        logoUrl: "http://c2.img",
+      },
+      {
+        handle: "c3",
+        name: "C3",
+        description: "Desc3",
+        numEmployees: 3,
+        logoUrl: "http://c3.img",
+      },
+    ]);
+  });
+
+  test("works: no results", async function () {
+    let companies = await Company.findAll({ name: "nope" });
+    expect(companies).toEqual([]);
+  });
 });
 
 /************************************** get */
@@ -98,7 +178,16 @@ describe("get", function () {
       description: "Desc1",
       numEmployees: 1,
       logoUrl: "http://c1.img",
+      jobs: [
+        {
+          id: 1,
+          title: "Job1",
+          salary: 100000,
+          equity: "0.1",
+        },
+      ],
     });
+  });
   });
 
   test("not found if no such company", async function () {
@@ -108,7 +197,6 @@ describe("get", function () {
     } catch (err) {
       expect(err instanceof NotFoundError).toBeTruthy();
     }
-  });
 });
 
 /************************************** update */

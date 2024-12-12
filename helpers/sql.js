@@ -17,7 +17,7 @@ const { BadRequestError } = require("../expressError");
 // The general function for this helper is to take the keys from the object
 // and convert them into a sanizted query string that will be used in our update statements 
 
-function sqlForPartialUpdate(dataToUpdate, jsToSql) {
+function sqlForPartialUpdate(dataToUpdate, jsToSql = {}) {
   // Get an array of keys from the dataToUpdate
   const keys = Object.keys(dataToUpdate);
   // If theres no keys, then there's no data, so throw an error

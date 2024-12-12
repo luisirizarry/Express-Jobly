@@ -4,10 +4,14 @@ const db = require("../db.js");
 const { BCRYPT_WORK_FACTOR } = require("../config");
 
 async function commonBeforeAll() {
+  // Changed the queries so that the ids reset
   // noinspection SqlWithoutWhere
-  await db.query("DELETE FROM companies");
+  await db.query("TRUNCATE companies RESTART IDENTITY CASCADE");
   // noinspection SqlWithoutWhere
-  await db.query("DELETE FROM users");
+  await db.query("TRUNCATE users RESTART IDENTITY CASCADE");
+  // noinspection SqlWithoutWhere
+  await db.query("TRUNCATE jobs RESTART IDENTITY CASCADE");
+
 
   await db.query(`
     INSERT INTO companies(handle, name, num_employees, description, logo_url)
@@ -16,11 +20,7 @@ async function commonBeforeAll() {
            ('c3', 'C3', 3, 'Desc3', 'http://c3.img')`);
 
   await db.query(`
-        INSERT INTO users(username,
-                          password,
-                          first_name,
-                          last_name,
-                          email)
+        INSERT INTO users(username,password,first_name,last_name,email)
         VALUES ('u1', $1, 'U1F', 'U1L', 'u1@email.com'),
                ('u2', $2, 'U2F', 'U2L', 'u2@email.com')
         RETURNING username`,
@@ -28,6 +28,12 @@ async function commonBeforeAll() {
         await bcrypt.hash("password1", BCRYPT_WORK_FACTOR),
         await bcrypt.hash("password2", BCRYPT_WORK_FACTOR),
       ]);
+
+  await db.query(`
+      INSERT INTO jobs (title, salary, equity, company_handle)        
+      VALUES ('Job1', 100000, 0.1, 'c1'),
+      ('Job2', 80000, 0.05, 'c2'),
+      ('Job3', 60000, 0, 'c3')`);
 }
 
 async function commonBeforeEach() {

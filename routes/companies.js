@@ -6,11 +6,12 @@ const jsonschema = require("jsonschema");
 const express = require("express");
 
 const { BadRequestError } = require("../expressError");
-const { ensureLoggedIn, ensureIsAdmin } = require("../middleware/auth");
+const { ensureIsAdmin } = require("../middleware/auth");
 const Company = require("../models/company");
 
 const companyNewSchema = require("../schemas/companyNew.json");
 const companyUpdateSchema = require("../schemas/companyUpdate.json");
+const companySearchSchema = require("../schemas/companyFilter.json");
 
 const router = new express.Router();
 
@@ -21,7 +22,7 @@ const router = new express.Router();
  *
  * Returns { handle, name, description, numEmployees, logoUrl }
  *
- * Authorization required: login
+ * Authorization required: admin
  */
 
 router.post("/", ensureIsAdmin, async function (req, res, next) {
@@ -51,10 +52,20 @@ router.post("/", ensureIsAdmin, async function (req, res, next) {
  */
 
 router.get("/", async function (req, res, next) {
+  const q = req.query;
+  // arrive as strings from querystring, but we want as int/bool
+  if (q.minEmployees !== undefined) q.minEmployees = +q.minEmployees;
+  if (q.maxEmployees !== undefined) q.maxEmployees = +q.maxEmployees;
+  q.name;
+
   try {
+    const validator = jsonschema.validate(q, companySearchSchema);
+    if (!validator.valid) {
+      const errs = validator.errors.map(e => e.stack);
+      throw new BadRequestError(errs);
+    }
     // get query string
-    const { name, minEmployees, maxEmployees } = req.query;
-    const companies = await Company.findAll({name, minEmployees, maxEmployees});
+    const companies = await Company.findAll(q);
     return res.json({ companies });
   } catch (err) {
     return next(err);
@@ -86,7 +97,7 @@ router.get("/:handle", async function (req, res, next) {
  *
  * Returns { handle, name, description, numEmployees, logo_url }
  *
- * Authorization required: login
+ * Authorization required: admin
  */
 
 router.patch("/:handle", ensureIsAdmin, async function (req, res, next) {
@@ -106,7 +117,7 @@ router.patch("/:handle", ensureIsAdmin, async function (req, res, next) {
 
 /** DELETE /[handle]  =>  { deleted: handle }
  *
- * Authorization: login
+ * Authorization: admin
  */
 
 router.delete("/:handle", ensureIsAdmin, async function (req, res, next) {

@@ -3,35 +3,35 @@
 const db = require("../db");
 const { BadRequestError, NotFoundError } = require("../expressError");
 const { sqlForPartialUpdate } = require("../helpers/sql");
-const { createFilterClause } = require(`../helpers/filter`);
+const { createJobFilterClause } = require(`../helpers/filter`);
 
 class Job {
   /** Create a job (from data), update db, return new job data.
    *
-   * data should be { id, title, salary, equity, company_handle }
+   * data should be { title, salary, equity, company_handle }
    *
    * Returns { id, title, salary, equity, company_handle }
    *
    * Throws BadRequestError if the job is already in database.
    * */
 
-  static async create({ id, title, salary, equity, companyHandle }) {
+  static async create({ title, salary, equity, companyHandle }) {
     const duplicateCheck = await db.query(
-      `SELECT id
-         FROM jobs
-         WHERE id = $1`,
-      [id]
+      `SELECT title, company_handle AS "companyHandle"
+      FROM jobs
+      WHERE title = $1 AND company_handle = $2`,
+      [title, companyHandle]
     );
 
     if (duplicateCheck.rows[0])
-      throw new BadRequestError(`Duplicate job: ${id}`);
+      throw new BadRequestError(`Duplicate job: ${title} for company ${companyHandle}`);
 
     const result = await db.query(
       `INSERT INTO jobs
-        (id, title, salary, equity, company_handle)
-        VALUES ($1, $2, $3, $4, $5)
+        (title, salary, equity, company_handle)
+        VALUES ($1, $2, $3, $4)
         RETURNING id, title, salary, equity, company_handle AS "companyHandle"`,
-      [id, title, salary, equity, companyHandle]
+      [title, salary, equity, companyHandle]
     );
     const job = result.rows[0];
 
@@ -43,26 +43,34 @@ class Job {
    * Returns [{ id, title, salary, equity, companyHandle }, ...]
    * */
 
-  static async findAll({ title, minSalary, hasEquity } = {}) {}
+  static async findAll(q = {}) {
+    const { whereClause, values } = createJobFilterClause(q);
+    const query = `SELECT id, title, salary, equity, company_handle AS "companyHandle"
+           FROM jobs
+           ${whereClause}
+           ORDER BY title`;
+    const jobsRes = await db.query(query, values);
+    return jobsRes.rows;
+  }
 
-  /** Given a job id, return data about job.
+  /** Given a job title and company_handle, return data about that job.
    *
    * Returns { id, title, salary, equity, companyHandle }
    *
    * Throws NotFoundError if not found.
    **/
 
-  static async get(id) {
+  static async get(title, companyHandle) {
     const jobRes = await db.query(
       `SELECT id, title, salary, equity, company_handle AS "companyHandle"
-         FROM jobs
-         WHERE id = $1`,
-      [id]
+        FROM jobs
+        WHERE title ILIKE $1 AND company_handle = $2`,
+      [title, companyHandle]
     );
 
     const job = jobRes.rows[0];
 
-    if (!job) throw new NotFoundError(`No job: ${id}`);
+    if (!job) throw new NotFoundError(`No job: ${title} for company ${companyHandle}`);
 
     return job;
   }
@@ -80,7 +88,11 @@ class Job {
    */
 
   static async update(id, data) {
-    const { setCols, values } = sqlForPartialUpdate(data, {companyHandle: "company_handle"});
+    if (Object.keys(data).length === 0) {
+      throw new BadRequestError("No data provided for update");
+    }
+
+    const { setCols, values } = sqlForPartialUpdate(data);
 
     const handleVarIdx = "$" + (values.length + 1);
 
