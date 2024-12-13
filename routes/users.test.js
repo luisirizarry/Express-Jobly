@@ -175,9 +175,12 @@ describe("GET /users", function () {
 
 describe("GET /users/:username", function () {
   test("works for admins", async function () {
+    await User.apply("u1", 1);
+    await User.apply("u1", 2);
+
     const resp = await request(app)
-        .get(`/users/u1`)
-        .set("authorization", `Bearer ${adminToken}`);
+      .get(`/users/u1`)
+      .set("authorization", `Bearer ${adminToken}`);
     expect(resp.body).toEqual({
       user: {
         username: "u1",
@@ -185,13 +188,17 @@ describe("GET /users/:username", function () {
         lastName: "U1L",
         email: "user1@user.com",
         isAdmin: false,
+        jobs: [1, 2],
       },
     });
   });
-  test("works for correct user aswell", async function () {
+
+  test("works for correct user", async function () {
+    await User.apply("u1", 1);
+
     const resp = await request(app)
-        .get(`/users/u1`)
-        .set("authorization", `Bearer ${u1Token}`);
+      .get(`/users/u1`)
+      .set("authorization", `Bearer ${u1Token}`);
     expect(resp.body).toEqual({
       user: {
         username: "u1",
@@ -199,20 +206,36 @@ describe("GET /users/:username", function () {
         lastName: "U1L",
         email: "user1@user.com",
         isAdmin: false,
+        jobs: [1], 
+      },
+    });
+  });
+
+  test("works for users with no jobs", async function () {
+    const resp = await request(app)
+      .get(`/users/u2`)
+      .set("authorization", `Bearer ${adminToken}`);
+    expect(resp.body).toEqual({
+      user: {
+        username: "u2",
+        firstName: "U2F",
+        lastName: "U2L",
+        email: "user2@user.com",
+        isAdmin: false,
+        jobs: [],
       },
     });
   });
 
   test("unauth for anon", async function () {
-    const resp = await request(app)
-        .get(`/users/u1`);
+    const resp = await request(app).get(`/users/u1`);
     expect(resp.statusCode).toEqual(401);
   });
 
-  test("not found if user not found and is admin", async function () {
+  test("not found if user not found", async function () {
     const resp = await request(app)
-        .get(`/users/nope`)
-        .set("authorization", `Bearer ${adminToken}`);
+      .get(`/users/nope`)
+      .set("authorization", `Bearer ${adminToken}`);
     expect(resp.statusCode).toEqual(404);
   });
 });
@@ -331,6 +354,51 @@ describe("DELETE /users/:username", function () {
   test("not found if user missing and is admin", async function () {
     const resp = await request(app)
         .delete(`/users/nope`)
+        .set("authorization", `Bearer ${adminToken}`);
+    expect(resp.statusCode).toEqual(404);
+  });
+});
+
+/************************************** POST /users/:username/jobs/:id */
+
+describe("POST /users/:username/jobs/:id", function () {
+  test("works for correct user", async function () {
+    const resp = await request(app)
+        .post(`/users/u1/jobs/1`)
+        .set("authorization", `Bearer ${u1Token}`);
+    expect(resp.body).toEqual({ applied: expect.any(Number) });
+  });
+
+  test("works for admin", async function () {
+    const resp = await request(app)
+        .post(`/users/u1/jobs/1`)
+        .set("authorization", `Bearer ${adminToken}`);
+    expect(resp.body).toEqual({ applied: expect.any(Number) });
+  });
+
+  test("unauth for anon", async function () {
+    const resp = await request(app)
+        .post(`/users/u1/jobs/1`);
+    expect(resp.statusCode).toEqual(401);
+  });
+
+  test("unauth for other users", async function () {
+    const resp = await request(app)
+        .post(`/users/u2/jobs/1`)
+        .set("authorization", `Bearer ${u1Token}`);
+    expect(resp.statusCode).toEqual(401);
+  });
+
+  test("not found if user not found", async function () {
+    const resp = await request(app)
+        .post(`/users/nope/jobs/1`)
+        .set("authorization", `Bearer ${adminToken}`);
+    expect(resp.statusCode).toEqual(404);
+  });
+
+  test("not found if job not found", async function () {
+    const resp = await request(app)
+        .post(`/users/u1/jobs/9999`)
         .set("authorization", `Bearer ${adminToken}`);
     expect(resp.statusCode).toEqual(404);
   });

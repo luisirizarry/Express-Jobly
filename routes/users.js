@@ -3,7 +3,6 @@
 /** Routes for users. */
 
 const jsonschema = require("jsonschema");
-
 const express = require("express");
 const { ensureIsAdmin, ensureCorrectUserOrAdmin } = require("../middleware/auth");
 const { BadRequestError } = require("../expressError");
@@ -113,6 +112,15 @@ router.delete("/:username", ensureCorrectUserOrAdmin, async function (req, res, 
   try {
     await User.remove(req.params.username);
     return res.json({ deleted: req.params.username });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.post('/:username/jobs/:id', ensureCorrectUserOrAdmin, async function (req, res, next) {
+  try {
+    const jobApplication = await User.apply(req.params.username, req.params.id);
+    return res.json({ applied: jobApplication });
   } catch (err) {
     return next(err);
   }

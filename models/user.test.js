@@ -132,14 +132,30 @@ describe("findAll", function () {
 /************************************** get */
 
 describe("get", function () {
-  test("works", async function () {
-    let user = await User.get("u1");
+  test("works: returns user with jobs", async function () {
+    await User.apply("u1", 1);
+    await User.apply("u1", 2);
+
+    const user = await User.get("u1");
     expect(user).toEqual({
       username: "u1",
       firstName: "U1F",
       lastName: "U1L",
       email: "u1@email.com",
       isAdmin: false,
+      jobs: [1, 2], 
+    });
+  });
+
+  test("works: returns user with no jobs", async function () {
+    const user = await User.get("u2");
+    expect(user).toEqual({
+      username: "u2",
+      firstName: "U2F",
+      lastName: "U2L",
+      email: "u2@email.com",
+      isAdmin: false,
+      jobs: [], 
     });
   });
 
@@ -148,7 +164,7 @@ describe("get", function () {
       await User.get("nope");
       fail();
     } catch (err) {
-      expect(err instanceof NotFoundError).toBeTruthy();
+      expect(err instanceof NotFoundError);
     }
   });
 });
@@ -214,8 +230,7 @@ describe("update", function () {
 describe("remove", function () {
   test("works", async function () {
     await User.remove("u1");
-    const res = await db.query(
-        "SELECT * FROM users WHERE username='u1'");
+    const res = await db.query("SELECT * FROM users WHERE username='u1'");
     expect(res.rows.length).toEqual(0);
   });
 
@@ -225,6 +240,44 @@ describe("remove", function () {
       fail();
     } catch (err) {
       expect(err instanceof NotFoundError).toBeTruthy();
+    }
+  });
+});
+
+describe("applyJob", function () {
+  test("correct application", async function () {
+    await User.apply("u1", 1);
+    const res = await db.query(
+      `SELECT * FROM applications WHERE username = 'u1' AND job_id = 1`
+    );
+    expect(res.rows.length).toEqual(1);
+  });
+
+  test("duplicate application", async function () {
+    try {
+      await User.apply("u1", 1);
+      await User.apply("u1", 1);
+      fail();
+    } catch (err) {
+      expect(err instanceof BadRequestError).toBeTruthy();
+    }
+  });
+
+  test("bad request if no such user", async function () {
+    try {
+      await User.apply("nope", 1);
+      fail();
+    } catch (err) {
+      expect(err instanceof BadRequestError);
+    }
+  });
+
+  test("bad request if no such job", async function () {
+    try {
+      await User.apply("u1", 9999);
+      fail();
+    } catch (err) {
+      expect(err instanceof BadRequestError);
     }
   });
 });
